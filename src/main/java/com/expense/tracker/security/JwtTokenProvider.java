@@ -24,40 +24,33 @@ public class JwtTokenProvider {
         return Keys.hmacShaKeyFor(keyBytes);
     }
 
+    // 🔥 로그인 성공 시 토큰 생성
     public String generateToken(Authentication authentication) {
-        UserDetailsImpl userPrincipal = (UserDetailsImpl) authentication.getPrincipal();
+
+        UserDetailsImpl userPrincipal =
+                (UserDetailsImpl) authentication.getPrincipal();
 
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + jwtExpirationMs);
 
         return Jwts.builder()
-                .subject(Long.toString(userPrincipal.getId()))
+                .subject(userPrincipal.getUsername())  // 🔥 username 저장
                 .issuedAt(now)
                 .expiration(expiryDate)
                 .signWith(getSigningKey())
                 .compact();
     }
 
-    public String generateTokenFromUsername(String username) {
-        Date now = new Date();
-        Date expiryDate = new Date(now.getTime() + jwtExpirationMs);
+    // 🔥 토큰에서 username 꺼내기
+    public String getUsernameFromToken(String token) {
 
-        return Jwts.builder()
-                .subject(username)
-                .issuedAt(now)
-                .expiration(expiryDate)
-                .signWith(getSigningKey())
-                .compact();
-    }
-
-    public Long getUserIdFromToken(String token) {
         Claims claims = Jwts.parser()
                 .verifyWith(getSigningKey())
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();
 
-        return Long.parseLong(claims.getSubject());
+        return claims.getSubject();
     }
 
     public boolean validateToken(String authToken) {
@@ -67,6 +60,7 @@ public class JwtTokenProvider {
                     .build()
                     .parseSignedClaims(authToken);
             return true;
+
         } catch (SecurityException ex) {
             System.err.println("Invalid JWT signature");
         } catch (MalformedJwtException ex) {
@@ -78,6 +72,7 @@ public class JwtTokenProvider {
         } catch (IllegalArgumentException ex) {
             System.err.println("JWT claims string is empty");
         }
+
         return false;
     }
 }
